@@ -182,6 +182,7 @@ class TeamGameSensor(CoordinatorEntity[AflTrackerCoordinator], SensorEntity):
             identifiers={(DOMAIN, str(team_id))},
             name=team_name,
             manufacturer="AFL Team Tracker",
+            configuration_url=BASE_URL,
             entry_type=DeviceEntryType.SERVICE,
         )
 
