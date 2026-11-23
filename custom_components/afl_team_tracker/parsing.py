@@ -1,4 +1,4 @@
-"""Parsing of the AFL data source's JSON (``aflapi.afl.com.au/afl/v2``)."""
+"""Parsing of the JSON returned by the API."""
 
 from __future__ import annotations
 
@@ -35,16 +35,16 @@ _UPCOMING_STATUSES = {
 _LIVE_STATUSES = {"LIVE", "IN_PROGRESS", "INPROGRESS"}
 # Substrings that mark a status the integration does not know as in play.
 _LIVE_HINTS = ("LIVE", "PROGRESS", "QUARTER", "HALF", "TIME")
-# Matches the data source lists before the teams are known (e.g. finals).
+# Matches listed before the teams are known (e.g. finals).
 _SKIPPED_STATUSES = {"PLACEHOLDER"}
 
 
 class ParseError(Exception):
-    """Raised when the data source's JSON is not in the expected shape."""
+    """Raised when the JSON is not in the expected shape."""
 
 
 def categorise_status(raw: str) -> str:
-    """Map the data source's match status to a status category.
+    """Map a match status to a status category.
 
     ``CONCLUDED`` and ``SCHEDULED`` were observed on the real API. The live and
     postponed statuses could not be sampled out of season, so known names are

@@ -60,7 +60,7 @@ def entry_team_competitions(entry: ConfigEntry) -> dict[int, int]:
 def is_in_play(game: Game, now: datetime) -> bool:
     """A fixture past its start (by up to 4 h) that is not yet marked finished.
 
-    The data source can take a while to flip a game to live; such a game must
+    The status can take a while to flip to live; such a game must
     be polled at the live rate rather than ignored.
     """
     return (

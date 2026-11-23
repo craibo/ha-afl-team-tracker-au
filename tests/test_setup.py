@@ -87,10 +87,13 @@ async def test_registers_static_path_and_resource(hass, frontend):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
     configs = register.call_args.args[0]
-    assert len(configs) == 1
+    assert len(configs) == 2
     assert configs[0].url_path == URL
     assert Path(configs[0].path) == COMPONENT / "www" / "afl-tracker-cards.js"
     assert Path(configs[0].path).is_file()
+    assert configs[1].url_path == "/afl_team_tracker/logos"
+    assert Path(configs[1].path) == COMPONENT / "www" / "logos"
+    assert Path(configs[1].path).is_dir()
     assert add_js.call_args.args[1] == f"{URL}?v={version}"
 
 

@@ -7,11 +7,11 @@ export type TeamView = {
   score?: number;
   /** Goals.behinds.total, e.g. "20.12.132", if known. */
   scoreDetail?: string;
-  /** Rank (ladder position, from the data source), if known. */
+  /** Rank (ladder position), if known. */
   rank?: number;
   /** `rank` formatted for the locale, e.g. "3rd" or "#3". */
   rankLabel?: string;
-  /** Validated data-source page of the team, if known. */
+  /** Validated page link of the team, if known. */
   url?: string;
 };
 export type CardView = {
@@ -24,7 +24,7 @@ export type CardView = {
   dateLine?: string;
   /** Upcoming only: the venue, shown under the start time. */
   venue?: string;
-  /** Absolute data-source match page (validated). Not set for `empty` views. */
+  /** Absolute match page link (validated). Not set for `empty` views. */
   matchUrl?: string;
 };
 
@@ -42,14 +42,14 @@ const str = (v: unknown): string | undefined =>
 const num = (v: unknown): number | undefined =>
   typeof v === "number" && Number.isFinite(v) ? v : undefined;
 
-const SOURCE_HOSTS = new Set(["www.afl.com.au", "afl.com.au"]);
+const LINK_HOSTS = new Set(["www.afl.com.au", "afl.com.au"]);
 
-/** An afl.com.au https URL (normalised), else undefined. Never throws. */
+/** An allow-listed https URL (normalised), else undefined. Never throws. */
 export function safeMatchUrl(value: unknown): string | undefined {
   if (typeof value !== "string" || value.trim() === "") return undefined;
   try {
     const u = new URL(value);
-    if (u.protocol !== "https:" || !SOURCE_HOSTS.has(u.hostname)) return undefined;
+    if (u.protocol !== "https:" || !LINK_HOSTS.has(u.hostname)) return undefined;
     if (u.username !== "" || u.password !== "" || u.port !== "") return undefined;
     return u.href;
   } catch {
@@ -58,18 +58,18 @@ export function safeMatchUrl(value: unknown): string | undefined {
 }
 
 /** Alias for links that are not match pages (team pages): same allow-list. */
-export const safeSourceUrl = safeMatchUrl;
+export const safeTeamUrl = safeMatchUrl;
 
 /** Accessible name for a match link. */
 export function matchLinkLabel(home: string, away: string): string {
-  return `Open the match on the website: ${home} v ${away}`;
+  return `Open the match: ${home} v ${away}`;
 }
 
 /** Accessible name for a team-page link. */
-export const teamLinkLabel = (name: string): string => `Open ${name} on the website`;
+export const teamLinkLabel = (name: string): string => `Open ${name}`;
 
 /** Accessible name for the middle (game page) link of the team card. */
-export const matchPartLabel = (): string => "Open the match on the website";
+export const matchPartLabel = (): string => "Open the match";
 
 /** Badge text for a team without a logo: its abbreviation, else the first 3 letters of its name. */
 export function teamAbbr(abbr: unknown, name: string): string {
@@ -157,7 +157,7 @@ export function buildView(
       score: hs,
       scoreDetail: str(a.home_score_detail),
       ...rankFields(a.home_rank, locale),
-      url: safeSourceUrl(a.home_team_url),
+      url: safeTeamUrl(a.home_team_url),
     };
     const away: TeamView = {
       name: awayName,
@@ -166,7 +166,7 @@ export function buildView(
       score: as,
       scoreDetail: str(a.away_score_detail),
       ...rankFields(a.away_rank, locale),
-      url: safeSourceUrl(a.away_team_url),
+      url: safeTeamUrl(a.away_team_url),
     };
     const score = `${hs ?? "-"} – ${as ?? "-"}`;
 

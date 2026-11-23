@@ -17,7 +17,7 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the data source.",
+      "cannot_connect": "Failed to connect to the service.",
       "no_teams": "No teams were found for the selected competitions."
     },
     "abort": {
@@ -35,7 +35,7 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the data source.",
+      "cannot_connect": "Failed to connect to the service.",
       "no_teams": "No teams were found for the selected competitions."
     }
   },

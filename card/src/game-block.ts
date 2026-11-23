@@ -109,6 +109,14 @@ export const gameBlockStyles = css`
       height: 56px;
       object-fit: contain;
     }
+    /* Club logos are drawn for light backgrounds: sit them on a light disc so
+       dark crests stay legible in dark themes. */
+    img.logo {
+      box-sizing: border-box;
+      padding: 5px;
+      border-radius: 50%;
+      background: #fff;
+    }
     .logo-badge {
       display: flex;
       align-items: center;
