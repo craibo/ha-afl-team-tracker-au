@@ -1,0 +1,220 @@
+import { describe, expect, it } from "vitest";
+import { gameBlock, gameBlockStyles } from "../src/game-block";
+import type { CardView } from "../src/state";
+
+const view = (over: Partial<CardView> = {}): CardView => ({
+  mode: "final",
+  home: { name: "Sydney Swans" },
+  away: { name: "Geelong Cats" },
+  headline: "1 – 0",
+  ...over,
+});
+const flat = (r: unknown) => JSON.stringify(r);
+const rule = (sel: string) => {
+  const css = gameBlockStyles.cssText;
+  const m = new RegExp(`(?:^|\\})\\s*${sel.replace(".", "\\.")}\\s*\\{([^}]*)\\}`).exec(css);
+  return m?.[1] ?? "";
+};
+
+describe("game block css", () => {
+  it("lets the centre column shrink so a long venue ellipsises", () => {
+    expect(rule(".centre")).toMatch(/min-width:\s*0/);
+    const v = rule(".venue");
+    expect(v).toMatch(/min-width:\s*0/);
+    expect(v).toMatch(/max-width:\s*100%/);
+    expect(v).toMatch(/overflow:\s*hidden/);
+    expect(v).toMatch(/text-overflow:\s*ellipsis/);
+    expect(v).toMatch(/white-space:\s*nowrap/);
+  });
+});
+
+describe("game block team badge", () => {
+  it("renders an abbreviation badge instead of an image when there is no logo", () => {
+    const m = markup(gameBlock(view({ home: { name: "Sydney Swans", abbr: "SYD" }, away: { name: "Geelong Cats", abbr: "GEE" } })));
+    expect(m).toContain("logo-badge");
+    expect(m).toMatch(/logo-badge[^>]*>SYD</);
+    expect(m).toMatch(/logo-badge[^>]*>GEE</);
+    expect(m).not.toContain("<img");
+  });
+  it("falls back to the first 3 letters of the name, uppercased", () => {
+    const m = markup(gameBlock(view()));
+    expect(m).toMatch(/logo-badge[^>]*>SYD</);
+    expect(m).toMatch(/logo-badge[^>]*>GEE</);
+  });
+  it("uses the logo image when one is available, and a badge for the other team", () => {
+    const m = markup(gameBlock(view({ home: { name: "Sydney Swans", abbr: "SYD", logo: "https://l/syd.png" } })));
+    expect(m).toContain('<img class="logo" src="https://l/syd.png"');
+    expect(m).not.toMatch(/logo-badge[^>]*>SYD</);
+    expect(m).toMatch(/logo-badge[^>]*>GEE</);
+  });
+  it("styles the badge as a circle", () => {
+    expect(rule(".logo-badge")).toMatch(/border-radius:\s*50%/);
+  });
+});
+
+describe("game block score detail", () => {
+  const withDetail = (over: Partial<CardView> = {}) =>
+    view({
+      home: { name: "Sydney Swans", scoreDetail: "20.12.132" },
+      away: { name: "Geelong Cats", scoreDetail: "10.9.69" },
+      headline: "132 – 69",
+      ...over,
+    });
+  it("shows goals.behinds.total under the totals for final and live", () => {
+    for (const mode of ["final", "live"] as const) {
+      const m = markup(gameBlock(withDetail({ mode })));
+      expect(m).toContain("20.12.132 – 10.9.69");
+      expect(m.indexOf("132 – 69")).toBeLessThan(m.indexOf("20.12.132"));
+    }
+  });
+  it("is optional: nothing when either detail is missing", () => {
+    expect(markup(gameBlock(view()))).not.toContain("score-detail");
+    const half = withDetail({ away: { name: "Geelong Cats" } });
+    expect(markup(gameBlock(half))).not.toContain("score-detail");
+  });
+  it("is not shown for upcoming games", () => {
+    expect(markup(gameBlock(withDetail({ mode: "upcoming" })))).not.toContain("score-detail");
+  });
+});
+
+describe("game block link", () => {
+  it("wraps in a safe new-tab link when matchUrl is set", () => {
+    const url = "https://www.afl.com.au/matches/9091";
+    const r = gameBlock(view({ matchUrl: url })) as unknown as { strings: string[]; values: unknown[] };
+    const src = r.strings.join("|");
+    expect(src).toContain('class="game-link"');
+    expect(src).toContain('target="_blank"');
+    expect(src).toContain('rel="noopener noreferrer"');
+    expect(r.values[0]).toBe(url);
+    expect(r.values[1]).toBe("Open the match on the website: Sydney Swans v Geelong Cats");
+  });
+  it("has no anchor without matchUrl", () => {
+    expect(flat(gameBlock(view()))).not.toContain("<a");
+    expect(flat(gameBlock(view({ mode: "upcoming", venue: "SCG" })))).not.toContain("<a");
+  });
+});
+
+type Tpl = { strings: readonly string[]; values: unknown[] };
+const isTpl = (x: unknown): x is Tpl =>
+  !!x && typeof x === "object" && "strings" in x && "values" in x;
+/** Flatten a Lit TemplateResult to markup; attribute values are quoted. */
+function markup(x: unknown): string {
+  if (x === undefined || x === null || typeof x === "symbol" || x === false) return "";
+  if (Array.isArray(x)) return x.map(markup).join("");
+  if (!isTpl(x)) return String(x);
+  let out = "";
+  x.strings.forEach((str, i) => {
+    out += str;
+    if (i < x.values.length) {
+      const v = x.values[i];
+      out += str.endsWith("=") ? `"${String(v)}"` : markup(v);
+    }
+  });
+  return out;
+}
+const anchors = (m: string) => [...m.matchAll(/<a\b([^>]*)>/g)].map((a) => a[1]);
+const attr = (a: string, name: string) => new RegExp(`${name}="([^"]*)"`).exec(a)?.[1];
+const noNested = (m: string) => {
+  let depth = 0;
+  for (const t of m.matchAll(/<(\/?)a\b/g)) {
+    depth += t[1] ? -1 : 1;
+    if (depth > 1) return false;
+  }
+  return depth === 0;
+};
+
+const HOME = "https://www.afl.com.au/teams/sydney-swans";
+const AWAY = "https://www.afl.com.au/teams/geelong-cats";
+const MATCH = "https://www.afl.com.au/matches/9091";
+const full = (over: Partial<CardView> = {}): CardView =>
+  view({
+    mode: "upcoming",
+    headline: "09:00",
+    dateLine: "Sat, 21 Nov",
+    venue: "SCG",
+    home: { name: "Sydney Swans", url: HOME },
+    away: { name: "Geelong Cats", url: AWAY },
+    matchUrl: MATCH,
+    ...over,
+  });
+
+describe("game block parts mode", () => {
+  it("renders home team, middle and away team as three separate safe new-tab links", () => {
+    const m = markup(gameBlock(full(), { linkMode: "parts" }));
+    const a = anchors(m);
+    expect(a).toHaveLength(3);
+    expect(a.map((x) => attr(x, "href"))).toEqual([HOME, MATCH, AWAY]);
+    expect(a.map((x) => attr(x, "aria-label"))).toEqual([
+      "Open Sydney Swans on the website",
+      "Open the match on the website",
+      "Open Geelong Cats on the website",
+    ]);
+    for (const x of a) {
+      expect(x).toContain('target="_blank"');
+      expect(x).toContain('rel="noopener noreferrer"');
+    }
+    expect(noNested(m)).toBe(true);
+    expect(m).not.toContain("game-link");
+  });
+  it("middle content sits inside the match link, logo and name inside the team links", () => {
+    const m = markup(gameBlock(full(), { linkMode: "parts" }));
+    expect(m).toMatch(/<a[^>]*href="https:\/\/www\.afl\.com\.au\/teams\/sydney-swans"[\s\S]*?Sydney Swans[\s\S]*?<\/a\s*>/);
+    expect(m).toMatch(/<a[^>]*href="[^"]*matches[^"]*"[\s\S]*?09:00[\s\S]*?SCG[\s\S]*?<\/a\s*>/);
+  });
+  it("a part without a url is not an anchor", () => {
+    let m = markup(gameBlock(full({ home: { name: "Sydney Swans" } }), { linkMode: "parts" }));
+    expect(anchors(m).map((x) => attr(x, "href"))).toEqual([MATCH, AWAY]);
+    m = markup(gameBlock(full({ matchUrl: undefined }), { linkMode: "parts" }));
+    expect(anchors(m).map((x) => attr(x, "href"))).toEqual([HOME, AWAY]);
+    m = markup(gameBlock(full({ matchUrl: undefined, home: { name: "S" }, away: { name: "W" } }), { linkMode: "parts" }));
+    expect(m).not.toContain("<a");
+    expect(m).toContain("SCG");
+  });
+  it("applies to live and final views too", () => {
+    for (const mode of ["live", "final"] as const) {
+      const a = anchors(markup(gameBlock(full({ mode, headline: "1 – 0" }), { linkMode: "parts" })));
+      expect(a, mode).toHaveLength(3);
+    }
+  });
+  it("empty views have no links", () => {
+    const m = markup(gameBlock(full({ mode: "empty", headline: "No game" }), { linkMode: "parts" }));
+    expect(m).not.toContain("<a");
+  });
+  it("team names are bound as text, not markup", () => {
+    const r = gameBlock(full({ home: { name: "<b>x</b>", url: HOME } }), { linkMode: "parts" }) as unknown as Tpl;
+    expect(JSON.stringify(r)).not.toContain("unsafeHTML");
+  });
+  it("styles give the link parts pointer, inherit colour, no underline, hover and focus-visible", () => {
+    const css = gameBlockStyles.cssText;
+    expect(css).toMatch(/\.team-link[\s\S]*?color:\s*inherit/);
+    expect(css).toMatch(/\.centre-link/);
+    expect(css).toMatch(/text-decoration:\s*none/);
+    expect(css).toMatch(/cursor:\s*pointer/);
+    expect(css).toMatch(/\.team-link:focus-visible/);
+    expect(css).toMatch(/\.centre-link:hover/);
+    expect(rule(".team")).toMatch(/min-width:\s*0/);
+  });
+});
+
+describe("game block block mode (game card)", () => {
+  it("is the default and emits a single wrapper for live and final", () => {
+    for (const mode of ["live", "final"] as const) {
+      for (const opts of [undefined, { linkMode: "block" as const }]) {
+        const m = markup(gameBlock(full({ mode, headline: "1 – 0" }), opts));
+        expect(anchors(m), mode).toHaveLength(1);
+        expect(m).toContain('class="game-link"');
+        expect(attr(anchors(m)[0], "href")).toBe(MATCH);
+      }
+    }
+  });
+  it("upcoming is not clickable, even when it has urls", () => {
+    expect(markup(gameBlock(full()))).not.toContain("<a");
+    expect(markup(gameBlock(full(), { linkMode: "block" }))).not.toContain("<a");
+    expect(markup(gameBlock(full({ badge: "Postponed" })))).not.toContain("<a");
+  });
+  it("never links the team parts", () => {
+    const m = markup(gameBlock(full({ mode: "live" })));
+    expect(m).not.toContain(HOME);
+    expect(m).not.toContain(AWAY);
+  });
+});

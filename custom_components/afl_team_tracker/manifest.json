@@ -1,0 +1,12 @@
+{
+  "domain": "afl_team_tracker",
+  "name": "AFL Team Tracker",
+  "codeowners": ["@craibo"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http"],
+  "documentation": "https://github.com/craibo/ha-afl-team-tracker-au",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/craibo/ha-afl-team-tracker-au/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
