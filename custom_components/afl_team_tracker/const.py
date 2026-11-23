@@ -12,3 +12,11 @@ PERIODS = (
     "Postponed",
     "Cancelled",
 )
+
+# Club logos bundled in www/logos/<abbreviation>.svg, by the (lower case) team
+# abbreviation used by the data source. A test checks this against the files.
+LOGOS = frozenset(
+    "adel alls aus bl carl coll ess fre gcfc geel gws haw ias irl "
+    "melb nmfc port rich stk syd wb wce".split()
+)
+LOGOS_URL = "/afl_team_tracker/logos"

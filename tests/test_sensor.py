@@ -91,7 +91,10 @@ def test_attributes_from_home_and_away_side():
     assert (home["home_score_detail"], home["away_score_detail"]) == ("22.0.132", "11.3.69")
     assert (home["home_rank"], home["away_rank"]) == (2, 7)
     assert (home["home_abbr"], home["away_abbr"]) == ("SYD", "GEEL")
-    assert home["logos"] == {"home": "", "away": ""}
+    assert home["logos"] == {
+        "home": "/afl_team_tracker/logos/syd.svg",
+        "away": "/afl_team_tracker/logos/geel.svg",
+    }
     assert home["venue"] == "SCG"
     assert home["round"] == "Round 1"
     assert "minute" not in home

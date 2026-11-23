@@ -12,7 +12,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
 from .client import AflTrackerClient
-from .const import DOMAIN
+from .const import DOMAIN, LOGOS_URL
 from .coordinator import AflTrackerConfigEntry, AflTrackerCoordinator
 
 PLATFORMS = [Platform.SENSOR]
@@ -20,13 +20,17 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 CARD_URL = "/afl_team_tracker/afl-tracker-cards.js"
 CARD_FILE = Path(__file__).parent / "www" / "afl-tracker-cards.js"
+LOGOS_DIR = Path(__file__).parent / "www" / "logos"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the cards as a frontend module (once per HA run)."""
+    """Register the cards as a frontend module and serve the logos (once per HA run)."""
     integration = await async_get_integration(hass, DOMAIN)
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_URL, str(CARD_FILE), cache_headers=False)]
+        [
+            StaticPathConfig(CARD_URL, str(CARD_FILE), cache_headers=False),
+            StaticPathConfig(LOGOS_URL, str(LOGOS_DIR), cache_headers=True),
+        ]
     )
     add_extra_js_url(hass, f"{CARD_URL}?v={integration.version}")
     return True

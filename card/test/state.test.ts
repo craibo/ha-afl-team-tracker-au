@@ -173,6 +173,16 @@ describe("buildView", () => {
     expect(v.away.logo).toBe("https://l/col.png");
     expect(buildView(ent({ logos: { home: null } }), "en", "UTC").home.logo).toBeUndefined();
   });
+
+  it("passes the bundled same-origin logo paths and treats empty strings as no logo", () => {
+    const v = buildView(
+      ent({ logos: { home: "/afl_team_tracker/logos/syd.svg", away: "" } }),
+      "en",
+      "UTC",
+    );
+    expect(v.home.logo).toBe("/afl_team_tracker/logos/syd.svg");
+    expect(v.away.logo).toBeUndefined();
+  });
 });
 
 describe("formatRank", () => {

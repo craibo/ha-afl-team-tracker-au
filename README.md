@@ -22,6 +22,7 @@ An **unofficial** Home Assistant integration that follows AFL and AFLW teams. Ea
 - **Current, next and previous five games**: opposition, start date and time, venue, round, score (with goals and behinds) and period (Upcoming, Live, Result, Postponed, Cancelled)
 - **Ladder positions**: shown after team names, from the competition's current ladder (the last ladder of the previous season until round 1 is played)
 - **Two bundled Lovelace cards**: a game card and a team card (current or next game plus the previous five results), with visual editors and no separate download
+- **Club logos**: bundled with the integration for all 18 AFL clubs (also used for the AFLW teams); see [Club logos](#club-logos)
 - **Light on the data source**: adaptive polling, from every 60 seconds while a followed game is on to every 6 hours when nothing is (see [Polling and data usage](#polling-and-data-usage))
 - **UI-first setup**: everything is configured from Home Assistant; no YAML needed
 
@@ -69,7 +70,7 @@ Seven sensors per team:
 
 Current game and Previous game 1 to 5 use the Australian football icon. Next game keeps Home Assistant's default clock icon (it is a timestamp sensor).
 
-Attributes on each (empty for Current game when nothing is live): `opposition`, `home_away`, `kickoff`, `venue`, `round`, `competition`, `home_team`, `away_team`, `home_abbr`, `away_abbr` (for example `SYD`), `home_score`, `away_score` (total points), `home_score_detail`, `away_score_detail` (goals.behinds.total, for example `20.12.132`), `period`, `status`, `match_url`, `logos` (`home` and `away`, currently always empty because the data source publishes none), `home_rank` and `away_rank` (ladder positions, or none when unknown) and `home_team_url` and `away_team_url` (the team's page on afl.com.au, or none when unknown).
+Attributes on each (empty for Current game when nothing is live): `opposition`, `home_away`, `kickoff`, `venue`, `round`, `competition`, `home_team`, `away_team`, `home_abbr`, `away_abbr` (for example `SYD`), `home_score`, `away_score` (total points), `home_score_detail`, `away_score_detail` (goals.behinds.total, for example `20.12.132`), `period`, `status`, `match_url`, `logos` (`home` and `away`: path of the bundled logo, for example `/afl_team_tracker/logos/syd.svg`, or empty when a team has none), `home_rank` and `away_rank` (ladder positions, or none when unknown) and `home_team_url` and `away_team_url` (the team's page on afl.com.au, or none when unknown).
 
 ## Game card
 
@@ -86,7 +87,7 @@ It shows both teams, each name followed by the team's ladder position in lighter
 - **Live:** current score and a `Live` badge.
 - **Final:** the final score, with goals and behinds under it.
 
-Because the data source has no club logos, each team is shown as a round badge with its abbreviation (for example `SYD`).
+Each team is shown with its club logo on a light round backdrop (so dark crests stay legible in dark themes). A team without a logo is shown as a round badge with its abbreviation (for example `SYD`).
 
 When the card shows a current (live) or previous game, clicking the game block opens the match page on afl.com.au in a new browser tab. The next game is not clickable.
 
@@ -139,6 +140,12 @@ At least one of `next`, `current` or a non-empty `previous` is required; entries
 
 **Visual editor:** pick any one of the team's game sensors and the editor fills in the other six from the entity-id naming (`..._current_game`, `..._next_game`, `..._previous_game_1` to `5`). If you have renamed the entities, set the entity ids explicitly in YAML as above.
 
+## Club logos
+
+The logos of the 18 AFL clubs, plus the AFLW international sides (Australia, Ireland) and the All Stars sides, are bundled in `custom_components/afl_team_tracker/www/logos/` and served by the integration at `/afl_team_tracker/logos/<abbreviation>.svg` (for example `syd.svg`; the abbreviation is the data source's team abbreviation in lower case). AFLW teams use the same club logos as their AFL club. They appear in the `logos` attribute and on the cards.
+
+The files were extracted from the SVG sprite that afl.com.au itself uses (`scripts/extract_logos.py` repeats this for a new sprite). **The logos are trademarks and artwork of the AFL and its clubs, are included only to identify the teams, and are not covered by this project's MIT licence.** If you are a rights holder and want a logo removed, please open an issue.
+
 ## Polling and data usage
 
 Polling is deliberately light: every 60 seconds only while a followed game is live, every 15 minutes when a followed game starts within 2 hours, and every 6 hours otherwise (shortened so the integration wakes no later than 2 hours before the next start). A followed game that is past its start time but not yet flagged live is also polled every 60 seconds, for up to 4 hours, so the start of a match is not missed.
@@ -148,7 +155,7 @@ Each refresh makes one request per followed team for the newest season (about 25
 ## Known limitations
 
 - **Live information is limited.** The data source's match list carries the status and, for finished games, the score, but the live minute, quarter and running score come from a separate feed that this integration does not use. While a game is live the card shows `Live`, and a running score only when the match list includes one. The live status names could not be sampled out of season: `SCHEDULED`, `PLACEHOLDER` and `CONCLUDED` were observed, `LIVE`, `IN_PROGRESS`, `POSTPONED` and `CANCELLED` are assumed, and an unknown status that looks in play (it contains LIVE, PROGRESS, QUARTER, HALF or TIME) is treated as live. If you see live games not detected, please open an issue with the status shown in the `status` attribute's raw value (enable debug logging for `custom_components.afl_team_tracker`).
-- **No club logos**: the data source publishes none, so cards show an abbreviation badge.
+- **Logos are static**: the data source's API publishes no logo URLs, so the logos are bundled files and will not update if a club changes its logo until they are re-extracted (see [Club logos](#club-logos)).
 - **AFLW links**: match pages for AFLW use `afl.com.au/aflw/matches/<id>`, which is the expected pattern but was not verified; AFLW team pages are not linked.
 - A postponed or cancelled game is not shown in any sensor; Next game skips to the next playable fixture. Finals fixtures appear once their teams are known.
 - Only the Toyota AFL Premiership and NAB AFLW are offered. Other competitions on the data source (VFL, Preseason and so on) can be added on request.
@@ -182,7 +189,7 @@ The built bundle is committed, and CI fails if it is out of date. Release steps 
 
 Released under the [MIT License](LICENSE).
 
-The integration uses its own original icon (`custom_components/afl_team_tracker/brand/`, generated by `scripts/make_icon.py`), which is covered by the same licence.
+The integration uses its own original icon (`custom_components/afl_team_tracker/brand/`, generated by `scripts/make_icon.py`), which is covered by the same licence. The club logos in `custom_components/afl_team_tracker/www/logos/` are the exception: see [Club logos](#club-logos).
 
 ## Data source and terms
 

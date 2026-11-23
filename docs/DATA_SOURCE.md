@@ -14,3 +14,7 @@ Match fields: `id`, `compSeason`, `round{name,roundNumber}`, `home`/`away` (`tea
 Site pages: `https://www.afl.com.au/afl/matches/<id>` and `https://www.afl.com.au/teams/<slug>` (for example `sydney-swans`) exist and show the match / team.
 
 Live scores and the minute come from `api.afl.com.au/cfs/afl` which needs a token exchange; deliberately not used.
+
+## Logos
+
+The API has no logo fields (`/teams`, `/matches` and `/clubs` were checked). The website draws club logos from the SVG sprite `https://www.afl.com.au/resources/<version>/i/svg-output/icons.svg`: one `<symbol id="icn-aflc-<abbr>">` per club (plus `-light` and `-flag` variants), where `<abbr>` is the API's team abbreviation in lower case. The sprite has no CORS header and its path changes with each site release, so a card cannot load it directly; the logos are extracted by `scripts/extract_logos.py` and bundled instead. The `/resources/club-watermarks/...` PNGs are faded background graphics, not logos.

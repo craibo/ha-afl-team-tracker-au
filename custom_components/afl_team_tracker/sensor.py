@@ -15,7 +15,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGOS, LOGOS_URL
 from .coordinator import AflTrackerConfigEntry, AflTrackerCoordinator, entry_teams
 from .models import LIVE, Game, Team, derive_period
 from .selection import MAX_PREVIOUS, TeamGames
@@ -37,6 +37,14 @@ def match_url(game: Game) -> str:
     """The game's match page on the data source's website."""
     path = _MATCH_PATH.get(game.competition_id, "afl")
     return f"{BASE_URL}/{path}/matches/{game.id}"
+
+
+def logo_url(team: Team) -> str:
+    """The team's bundled logo, or an empty string when there is none."""
+    if team.logo:
+        return team.logo
+    abbreviation = team.abbreviation.lower()
+    return f"{LOGOS_URL}/{abbreviation}.svg" if abbreviation in LOGOS else ""
 
 
 def team_url(game: Game, team: Team) -> str | None:
@@ -74,7 +82,7 @@ def game_attributes(
         "period": derive_period(game),
         "status": game.status,
         "match_url": match_url(game),
-        "logos": {"home": game.home.logo, "away": game.away.logo},
+        "logos": {"home": logo_url(game.home), "away": logo_url(game.away)},
         "home_rank": ranks(game.competition_id, game.home) if ranks else None,
         "away_rank": ranks(game.competition_id, game.away) if ranks else None,
         "home_team_url": team_url(game, game.home),
