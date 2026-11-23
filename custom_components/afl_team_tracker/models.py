@@ -25,7 +25,7 @@ class Team:
     name: str
     abbreviation: str
     nickname: str = ""
-    # The data source publishes no logos; kept for forward compatibility.
+    # No logo URLs are published; kept for forward compatibility.
     logo: str = ""
 
 
@@ -48,7 +48,7 @@ class Game:
     competition: str
     # One of fixture, live, result, postponed, cancelled.
     status: str
-    # The data source's own status text (for diagnostics).
+    # The original status text (for diagnostics).
     raw_status: str = ""
     round_name: str = ""
 

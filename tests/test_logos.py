@@ -25,7 +25,7 @@ def test_logo_set_matches_the_files():
 
 
 def test_every_men_and_women_club_abbreviation_has_a_logo():
-    # Abbreviations of the 18 AFL clubs as used by the data source's API.
+    # Abbreviations of the 18 AFL clubs as used by the API.
     clubs = (
         "ADEL BL CARL COLL ESS FRE GCFC GEEL GWS HAW MELB NMFC PORT RICH STK SYD WB WCE"
     ).split()

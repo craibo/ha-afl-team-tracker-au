@@ -86,7 +86,7 @@ describe("game block link", () => {
     expect(src).toContain('target="_blank"');
     expect(src).toContain('rel="noopener noreferrer"');
     expect(r.values[0]).toBe(url);
-    expect(r.values[1]).toBe("Open the match on the website: Sydney Swans v Geelong Cats");
+    expect(r.values[1]).toBe("Open the match: Sydney Swans v Geelong Cats");
   });
   it("has no anchor without matchUrl", () => {
     expect(flat(gameBlock(view()))).not.toContain("<a");
@@ -145,9 +145,9 @@ describe("game block parts mode", () => {
     expect(a).toHaveLength(3);
     expect(a.map((x) => attr(x, "href"))).toEqual([HOME, MATCH, AWAY]);
     expect(a.map((x) => attr(x, "aria-label"))).toEqual([
-      "Open Sydney Swans on the website",
-      "Open the match on the website",
-      "Open Geelong Cats on the website",
+      "Open Sydney Swans",
+      "Open the match",
+      "Open Geelong Cats",
     ]);
     for (const x of a) {
       expect(x).toContain('target="_blank"');

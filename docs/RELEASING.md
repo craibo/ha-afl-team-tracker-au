@@ -12,4 +12,4 @@ Releases are cut by pushing a `v*` tag; `.github/workflows/release.yml` checks t
 
 ## Verifying live behaviour (still to do in season)
 
-The live statuses of the data source could not be sampled in the 2026-27 off-season. During the first live match of 2027, poll `https://aflapi.afl.com.au/afl/v2/matches?compSeasonId=102&teamId=<id>` every few minutes, record the match `status` values and whether a running `score` is present, save a trimmed fixture under `tests/fixtures/` and adjust `categorise_status` in `custom_components/afl_team_tracker/source.py`.
+The live match statuses could not be sampled in the off-season. During the first live match of 2027, poll the matches request made by `custom_components/afl_team_tracker/client.py` for a followed team every few minutes, record the match `status` values and whether a running `score` is present, save a trimmed fixture under `tests/fixtures/` and adjust `categorise_status` in `custom_components/afl_team_tracker/parsing.py`.

@@ -26,7 +26,7 @@ async def _fetch_team_options(
     """Fetch the teams of the competitions.
 
     Returns select options, team id -> name and team id -> competition id.
-    Raises AflTrackerError when the data source cannot be read.
+    Raises AflTrackerError when the data cannot be fetched.
     """
     client = AflTrackerClient(async_get_clientsession(hass))
     titles = client.list_competitions()
@@ -164,7 +164,7 @@ class AflTrackerOptionsFlow(OptionsFlow):
         }
 
         if user_input is not None:
-            # No refetch: submitting must work even while the data source is down.
+            # No refetch: submitting must work even while the service is down.
             ids = [int(t) for t in user_input["teams"]]
             names = {**stored_names, **self._team_names}
             comps = {**stored_comps, **self._team_competitions}
@@ -190,7 +190,7 @@ class AflTrackerOptionsFlow(OptionsFlow):
             )
         except AflTrackerError:
             # Still offer the followed teams (stored names) so they can be
-            # unfollowed while the data source is unreachable.
+            # unfollowed while the service is unreachable.
             errors["base"] = "cannot_connect"
 
         current = [str(t) for t in entry.options.get("teams", entry.data["teams"])]

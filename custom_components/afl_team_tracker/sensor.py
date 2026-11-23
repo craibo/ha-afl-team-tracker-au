@@ -21,9 +21,9 @@ from .models import LIVE, Game, Team, derive_period
 from .selection import MAX_PREVIOUS, TeamGames
 
 BASE_URL = "https://www.afl.com.au"
-# Competition id -> path segment of the site's match pages.
+# Competition id -> path segment of the match page links.
 _MATCH_PATH = {1: "afl", 3: "aflw"}
-# Team pages on the site were only seen for the men's competition.
+# Team page links were only verified for the men's competition.
 _TEAM_PAGE_COMPETITION = 1
 NO_GAME = "No game in progress"
 RESULT_UNAVAILABLE = "Result unavailable"
@@ -34,7 +34,7 @@ type RankLookup = Callable[[int, Team], int | None]
 
 
 def match_url(game: Game) -> str:
-    """The game's match page on the data source's website."""
+    """The link to the game's match page."""
     path = _MATCH_PATH.get(game.competition_id, "afl")
     return f"{BASE_URL}/{path}/matches/{game.id}"
 
@@ -48,7 +48,7 @@ def logo_url(team: Team) -> str:
 
 
 def team_url(game: Game, team: Team) -> str | None:
-    """The team's page on the website, or None when its address is unknown."""
+    """The link to the team's page, or None when its address is unknown."""
     if game.competition_id != _TEAM_PAGE_COMPETITION:
         return None
     slug = re.sub(r"[^a-z0-9]+", "-", team.name.lower()).strip("-")
@@ -182,7 +182,6 @@ class TeamGameSensor(CoordinatorEntity[AflTrackerCoordinator], SensorEntity):
             identifiers={(DOMAIN, str(team_id))},
             name=team_name,
             manufacturer="AFL Team Tracker",
-            configuration_url=BASE_URL,
             entry_type=DeviceEntryType.SERVICE,
         )
 

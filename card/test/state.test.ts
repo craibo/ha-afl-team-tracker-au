@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildView, formatRank, safeMatchUrl, safeSourceUrl, matchLinkLabel, type HassEntity } from "../src/state";
+import { buildView, formatRank, safeMatchUrl, safeTeamUrl, matchLinkLabel, type HassEntity } from "../src/state";
 
 const base = {
   opposition: "Collingwood",
@@ -298,7 +298,7 @@ describe("buildView matchUrl and venue", () => {
 });
 
 it("matchLinkLabel names both teams", () => {
-  expect(matchLinkLabel("Sydney Swans", "Geelong Cats")).toBe("Open the match on the website: Sydney Swans v Geelong Cats");
+  expect(matchLinkLabel("Sydney Swans", "Geelong Cats")).toBe("Open the match: Sydney Swans v Geelong Cats");
 });
 
 describe("team urls", () => {
@@ -337,9 +337,9 @@ describe("team urls", () => {
   it("is absent when the attributes are missing", () => {
     expect(buildView(ent(), "en", "UTC").home.url).toBeUndefined();
   });
-  it("safeSourceUrl is the same allow-list as safeMatchUrl", () => {
-    expect(safeSourceUrl(T)).toBe(T);
-    expect(safeSourceUrl("http://www.afl.com.au/")).toBeUndefined();
-    expect(safeSourceUrl(7)).toBeUndefined();
+  it("safeTeamUrl is the same allow-list as safeMatchUrl", () => {
+    expect(safeTeamUrl(T)).toBe(T);
+    expect(safeTeamUrl("http://www.afl.com.au/")).toBeUndefined();
+    expect(safeTeamUrl(7)).toBeUndefined();
   });
 });

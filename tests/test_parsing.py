@@ -16,7 +16,7 @@ from custom_components.afl_team_tracker.models import (
     CompSeason,
     pick_seasons,
 )
-from custom_components.afl_team_tracker.source import (
+from custom_components.afl_team_tracker.parsing import (
     ParseError,
     categorise_status,
     num_pages,

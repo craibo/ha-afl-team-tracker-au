@@ -19,7 +19,7 @@ export type PreviousRow = {
   rank?: number;
   /** `rank` formatted for the locale, e.g. "3rd". */
   rankLabel?: string;
-  /** Validated data-source match page, if known. */
+  /** Validated match page link, if known. */
   matchUrl?: string;
   score: string;
   /** Goals.behinds.total for both sides, followed team first (tooltip), if known. */
@@ -29,7 +29,7 @@ export type PreviousRow = {
 
 /** Accessible name for a previous-result row link. */
 export const previousLinkLabel = (opposition: string): string =>
-  `Open the match against ${opposition} on the website`;
+  `Open the match against ${opposition}`;
 
 export type TeamCardView = {
   top: CardView;

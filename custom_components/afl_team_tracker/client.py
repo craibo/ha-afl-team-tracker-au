@@ -1,4 +1,4 @@
-"""HTTP client for the AFL data source (JSON API)."""
+"""HTTP client for the JSON API."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import aiohttp
 
 from .const import USER_AGENT
 from .models import CompSeason, Game
-from .source import (
+from .parsing import (
     ParseError,
     num_pages,
     parse_comp_seasons,

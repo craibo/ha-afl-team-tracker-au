@@ -1,13 +1,12 @@
-"""Extract the club logos from the data source website's SVG sprite.
+"""Extract club logos from an SVG sprite file.
 
 Usage (from the repository root):
 
-    curl -o /tmp/icons.svg https://www.afl.com.au/resources/<version>/i/svg-output/icons.svg
-    python scripts/extract_logos.py /tmp/icons.svg
+    python scripts/extract_logos.py path/to/sprite.svg
 
 Writes one standalone SVG per club to custom_components/afl_team_tracker/www/logos/
-named after the team abbreviation used by the data source's API, lower case
-(``syd.svg``). The logos are the property of the AFL and its clubs (see the README).
+named after the team abbreviation used by the API, lower case (``syd.svg``). The
+sprite must contain ``<symbol id="icn-aflc-<abbreviation>">`` elements.
 Only the abbreviations in ``ABBREVIATIONS`` are extracted; update ``LOGOS`` in
 custom_components/afl_team_tracker/const.py when you change it (a test checks they agree).
 """
