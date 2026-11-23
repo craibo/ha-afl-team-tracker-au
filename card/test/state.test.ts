@@ -1,0 +1,335 @@
+import { describe, expect, it } from "vitest";
+import { buildView, formatRank, safeMatchUrl, safeSourceUrl, matchLinkLabel, type HassEntity } from "../src/state";
+
+const base = {
+  opposition: "Collingwood",
+  home_away: "home",
+  kickoff: "2026-11-21T09:00:00+00:00",
+  venue: "SCG",
+  home_team: "Sydney Swans",
+  away_team: "Collingwood",
+  home_score: null,
+  away_score: null,
+  period: "Upcoming",
+  home_abbr: "SYD",
+  away_abbr: "COL",
+  home_score_detail: null,
+  away_score_detail: null,
+  status: "upcoming",
+  match_url: "https://www.afl.com.au/matches/9091",
+  logos: { home: "https://l/syd.png", away: "https://l/col.png" },
+};
+const ent = (over: Record<string, unknown> = {}, state = "x"): HassEntity => ({
+  state,
+  attributes: { ...base, ...over },
+});
+
+describe("buildView", () => {
+  it("upcoming formats kickoff in the given timezone", () => {
+    const utc = buildView(ent(), "en-GB", "UTC");
+    const syd = buildView(ent(), "en-GB", "Australia/Sydney");
+    expect(utc.mode).toBe("upcoming");
+    expect(utc.headline).toContain("09:00");
+    expect(syd.headline).toContain("20:00");
+    expect(syd.headline).not.toBe(utc.headline);
+    expect(utc.dateLine).toContain("21");
+    expect(utc.dateLine).not.toContain("09:00");
+    expect(syd.dateLine).toContain("21");
+    expect(utc.badge).toBeUndefined();
+  });
+
+  it("live shows score and a plain Live badge", () => {
+    const v = buildView(ent({ period: "Live", home_score: 132, away_score: 69 }), "en", "UTC");
+    expect(v.mode).toBe("live");
+    expect(v.headline).toBe("132 – 69");
+    expect(v.badge).toBe("Live");
+    expect(v.home.score).toBe(132);
+    expect(v.away.score).toBe(69);
+  });
+
+  it("live ignores any stray minute attribute", () => {
+    const v = buildView(ent({ period: "Live", minute: 63, home_score: 12, away_score: 10 }), "en", "UTC");
+    expect(v.badge).toBe("Live");
+  });
+
+  it("live carries the match url", () => {
+    const v = buildView(ent({ period: "Live", home_score: 12, away_score: 5, match_url: GOOD }), "en", "UTC");
+    expect(v.matchUrl).toBe(GOOD);
+  });
+
+  it("live stays defensive about wrong types", () => {
+    const v = buildView(
+      ent({ period: "Live", home_score: "x", away_score: null, match_url: 5, home_score_detail: 7 }),
+      "en",
+      "UTC",
+    );
+    expect(v.mode).toBe("live");
+    expect(v.headline).toBe("- – -");
+    expect(v.badge).toBe("Live");
+    expect(v.matchUrl).toBeUndefined();
+    expect(v.home.scoreDetail).toBeUndefined();
+  });
+
+  it("old rugby periods are no longer recognised", () => {
+    for (const period of ["Kick off", "First Half", "Half Time", "Second Half"]) {
+      expect(buildView(ent({ period }), "en", "UTC").mode).toBe("empty");
+    }
+  });
+
+  it("exposes goals.behinds.total detail when present", () => {
+    const v = buildView(
+      ent({
+        period: "Result",
+        home_score: 132,
+        away_score: 69,
+        home_score_detail: "20.12.132",
+        away_score_detail: "10.9.69",
+      }),
+      "en",
+      "UTC",
+    );
+    expect(v.home.scoreDetail).toBe("20.12.132");
+    expect(v.away.scoreDetail).toBe("10.9.69");
+  });
+
+  it("score detail is optional", () => {
+    const v = buildView(ent({ period: "Result", home_score: 132, away_score: 69 }), "en", "UTC");
+    expect(v.home.scoreDetail).toBeUndefined();
+    expect(v.away.scoreDetail).toBeUndefined();
+  });
+
+  it("uses the abbreviations from the attributes", () => {
+    const v = buildView(ent(), "en", "UTC");
+    expect(v.home.abbr).toBe("SYD");
+    expect(v.away.abbr).toBe("COL");
+  });
+
+  it("falls back to the first 3 letters of the name, uppercased, without an abbreviation", () => {
+    const v = buildView(ent({ home_abbr: null, away_abbr: "" , away_team: "geelong Cats"}), "en", "UTC");
+    expect(v.home.abbr).toBe("SYD");
+    expect(v.away.abbr).toBe("GEE");
+  });
+
+  it("final shows score and Full time", () => {
+    const v = buildView(ent({ period: "Result", home_score: 24, away_score: 17 }), "en", "UTC");
+    expect(v.mode).toBe("final");
+    expect(v.headline).toBe("24 – 17");
+    expect(v.badge).toBe("Full time");
+  });
+
+  it.each(["Postponed", "Cancelled"])("%s is upcoming with badge", (p) => {
+    const v = buildView(ent({ period: p }), "en-GB", "UTC");
+    expect(v.mode).toBe("upcoming");
+    expect(v.badge).toBe(p);
+    expect(v.headline).toContain("09:00");
+  });
+
+  it.each([
+    undefined,
+    { state: "unavailable", attributes: {} },
+    { state: "unknown", attributes: {} },
+    { state: "No game in progress", attributes: {} },
+    { state: "x", attributes: { ...base, period: undefined } },
+  ])("empty for %j", (e) => {
+    const v = buildView(e as HassEntity | undefined, "en", "UTC");
+    expect(v.mode).toBe("empty");
+    expect(v.headline).toBe("No game");
+    expect(v.home).toEqual({ name: "" });
+  });
+
+  it("wrong-typed attributes do not throw", () => {
+    const bad = [
+      { state: "x", attributes: null },
+      ent({ period: 5 }),
+      ent({ home_team: 3 }),
+      ent({ logos: "nope" }),
+      ent({ period: "Result", home_score: "a", away_score: {} }),
+    ];
+    for (const b of bad) {
+      expect(() => buildView(b as unknown as HassEntity, "en", "UTC")).not.toThrow();
+    }
+    expect(buildView(ent({ period: 5 }), "en", "UTC").mode).toBe("empty");
+    expect(buildView(ent({ home_team: 3 }), "en", "UTC").mode).toBe("empty");
+  });
+
+  it("invalid kickoff does not throw", () => {
+    expect(buildView(ent({ kickoff: "garbage" }), "en", "UTC").headline).toBe("garbage");
+    expect(buildView(ent({ kickoff: "garbage" }), "en", "UTC").dateLine).toBeUndefined();
+    expect(buildView(ent({ kickoff: "2026-11-21T09:00:00Z" }), "en", "Bad/Zone").headline).toBe("2026-11-21T09:00:00Z");
+    expect(buildView(ent({ kickoff: 12 }), "en", "UTC").headline).toBe("TBC");
+  });
+
+  it("home/away order is independent of home_away", () => {
+    const a = buildView(ent({ home_away: "home" }), "en", "UTC");
+    const b = buildView(ent({ home_away: "away" }), "en", "UTC");
+    expect(a.home.name).toBe("Sydney Swans");
+    expect(b.home.name).toBe("Sydney Swans");
+    expect(b.away.name).toBe("Collingwood");
+  });
+
+  it("passes logos through", () => {
+    const v = buildView(ent(), "en", "UTC");
+    expect(v.home.logo).toBe("https://l/syd.png");
+    expect(v.away.logo).toBe("https://l/col.png");
+    expect(buildView(ent({ logos: { home: null } }), "en", "UTC").home.logo).toBeUndefined();
+  });
+});
+
+describe("formatRank", () => {
+  it("uses English ordinals for en locales", () => {
+    const cases: [number, string][] = [
+      [1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [10, "10th"],
+      [11, "11th"], [12, "12th"], [13, "13th"], [14, "14th"],
+      [21, "21st"], [22, "22nd"], [23, "23rd"], [24, "24th"],
+      [101, "101st"], [111, "111th"], [112, "112th"],
+    ];
+    for (const [n, want] of cases) {
+      expect(formatRank(n, "en")).toBe(want);
+      expect(formatRank(n, "en-GB")).toBe(want);
+      expect(formatRank(n, "en-AU")).toBe(want);
+    }
+  });
+  it("falls back to #n for other locales", () => {
+    expect(formatRank(1, "fr")).toBe("#1");
+    expect(formatRank(3, "de-DE")).toBe("#3");
+    expect(formatRank(12, "nl")).toBe("#12");
+    expect(formatRank(2, "")).toBe("#2");
+  });
+  it("never throws on odd locales", () => {
+    expect(() => formatRank(2, "en-!!bad")).not.toThrow();
+    expect(formatRank(2, "en-!!bad")).toBe("2nd");
+  });
+});
+
+describe("buildView ranks", () => {
+  it("reads home_rank and away_rank", () => {
+    const v = buildView(ent({ home_rank: 3, away_rank: 11 }), "en", "UTC");
+    expect(v.home.rank).toBe(3);
+    expect(v.away.rank).toBe(11);
+    expect(v.home.rankLabel).toBe("3rd");
+    expect(v.away.rankLabel).toBe("11th");
+  });
+  it("labels use the locale", () => {
+    const v = buildView(ent({ home_rank: 1, away_rank: 2 }), "fr", "UTC");
+    expect(v.home.rankLabel).toBe("#1");
+    expect(v.away.rankLabel).toBe("#2");
+  });
+  it("ranks in live and final views too", () => {
+    const live = buildView(
+      ent({ period: "Live", home_score: 0, away_score: 0, home_rank: 5, away_rank: 6 }),
+      "en",
+      "UTC",
+    );
+    expect([live.home.rankLabel, live.away.rankLabel]).toEqual(["5th", "6th"]);
+    const fin = buildView(ent({ period: "Result", home_score: 1, away_score: 0, away_rank: 2 }), "en", "UTC");
+    expect(fin.home.rank).toBeUndefined();
+    expect(fin.away.rankLabel).toBe("2nd");
+  });
+  it("ignores missing or invalid rank types", () => {
+    for (const bad of [undefined, null, "3", 0, -1, 2.5, NaN, Infinity, true, {}, [1]]) {
+      const v = buildView(ent({ home_rank: bad, away_rank: bad }), "en", "UTC");
+      expect(v.mode).toBe("upcoming");
+      expect(v.home.rank).toBeUndefined();
+      expect(v.home.rankLabel).toBeUndefined();
+      expect(v.away.rank).toBeUndefined();
+      expect(v.away.rankLabel).toBeUndefined();
+    }
+  });
+});
+
+const GOOD = "https://www.afl.com.au/matches/9091";
+
+describe("safeMatchUrl", () => {
+  it("accepts source-site https urls and normalises", () => {
+    expect(safeMatchUrl(GOOD)).toBe(GOOD);
+    expect(safeMatchUrl("https://afl.com.au/matches/9091")).toBe("https://afl.com.au/matches/9091");
+    expect(safeMatchUrl("https://WWW.AFL.com.au")).toBe("https://www.afl.com.au/");
+  });
+  it("rejects everything else without throwing", () => {
+    const bad: unknown[] = [
+      undefined, null, 1, true, {}, [GOOD], "", " ", "/matches/x", "matches/x", "http://www.afl.com.au/matches/x",
+      "javascript:alert(1)", "data:text/html,hi", "https://evil.example/", "https://www.afl.com.au.evil.example/",
+      "https://evil.example/www.afl.com.au", "https://sub.afl.com.au/", "https://user:pw@www.afl.com.au/",
+      "https://user@www.afl.com.au/", "//www.afl.com.au/x", "ftp://www.afl.com.au/",
+      "https://www.afl.com.au@evil.example/",
+    ];
+    for (const b of bad) expect(safeMatchUrl(b), String(b)).toBeUndefined();
+  });
+});
+
+describe("buildView matchUrl and venue", () => {
+  const live = { period: "Live", home_score: 0, away_score: 0, match_url: GOOD };
+  it("matchUrl for live, final and upcoming views", () => {
+    expect(buildView(ent(live), "en", "UTC").matchUrl).toBe(GOOD);
+    expect(buildView(ent({ ...live, period: "Result" }), "en", "UTC").matchUrl).toBe(GOOD);
+    expect(buildView(ent({ match_url: GOOD }), "en", "UTC").matchUrl).toBe(GOOD);
+    expect(buildView(ent({ period: "Postponed", match_url: GOOD }), "en", "UTC").matchUrl).toBe(GOOD);
+    expect(buildView(ent({ period: "Cancelled", match_url: GOOD }), "en", "UTC").matchUrl).toBe(GOOD);
+    expect(buildView(ent({ match_url: "http://www.afl.com.au/x" }), "en", "UTC").matchUrl).toBeUndefined();
+    expect(buildView({ state: "unknown", attributes: { match_url: GOOD } }, "en", "UTC").matchUrl).toBeUndefined();
+  });
+  it("rejects unsafe or mistyped urls without throwing", () => {
+    for (const bad of ["javascript:alert(1)", "http://www.afl.com.au/x", 5, null, {}, ""]) {
+      expect(buildView(ent({ ...live, match_url: bad }), "en", "UTC").matchUrl).toBeUndefined();
+    }
+    expect(buildView(ent({ ...live, match_url: undefined }), "en", "UTC").mode).toBe("live");
+  });
+  it("venue only for upcoming, trimmed", () => {
+    expect(buildView(ent({ venue: "  SCG " }), "en", "UTC").venue).toBe("SCG");
+    expect(buildView(ent({ ...live, venue: "SCG" }), "en", "UTC").venue).toBeUndefined();
+    expect(buildView(ent({ period: "Result", home_score: 1, away_score: 0 }), "en", "UTC").venue).toBeUndefined();
+    expect(buildView(ent({ period: "Postponed" }), "en", "UTC").venue).toBe("SCG");
+  });
+  it("ignores empty or non-string venue", () => {
+    for (const bad of ["", "   ", null, undefined, 3, {}, ["x"]]) {
+      expect(buildView(ent({ venue: bad }), "en", "UTC").venue).toBeUndefined();
+    }
+  });
+});
+
+it("matchLinkLabel names both teams", () => {
+  expect(matchLinkLabel("Sydney Swans", "Geelong Cats")).toBe("Open the match on the website: Sydney Swans v Geelong Cats");
+});
+
+describe("team urls", () => {
+  const T = "https://www.afl.com.au/teams/sydney-swans/";
+  const A = "https://www.afl.com.au/teams/geelong-cats/";
+  it("carries home and away team pages through the allow-list", () => {
+    const v = buildView(ent({ home_team_url: T, away_team_url: A }), "en", "UTC");
+    expect(v.home.url).toBe(T);
+    expect(v.away.url).toBe(A);
+  });
+  it("is available for live, final and upcoming views", () => {
+    for (const period of ["Upcoming", "Live", "Result", "Postponed", "Cancelled"]) {
+      const v = buildView(ent({ period, home_team_url: T, away_team_url: A }), "en", "UTC");
+      expect(v.home.url, period).toBe(T);
+      expect(v.away.url, period).toBe(A);
+    }
+  });
+  it("rejects unsafe, foreign, insecure and non-string values without throwing", () => {
+    for (const bad of [
+      "javascript:alert(1)",
+      "https://evil.example/teams/x/",
+      "http://www.afl.com.au/teams/x/",
+      "https://www.afl.com.au.evil.example/teams/x/",
+      5,
+      null,
+      {},
+      ["x"],
+      "",
+    ]) {
+      const v = buildView(ent({ home_team_url: bad, away_team_url: bad }), "en", "UTC");
+      expect(v.mode).toBe("upcoming");
+      expect(v.home.url, String(bad)).toBeUndefined();
+      expect(v.away.url, String(bad)).toBeUndefined();
+    }
+  });
+  it("is absent when the attributes are missing", () => {
+    expect(buildView(ent(), "en", "UTC").home.url).toBeUndefined();
+  });
+  it("safeSourceUrl is the same allow-list as safeMatchUrl", () => {
+    expect(safeSourceUrl(T)).toBe(T);
+    expect(safeSourceUrl("http://www.afl.com.au/")).toBeUndefined();
+    expect(safeSourceUrl(7)).toBeUndefined();
+  });
+});

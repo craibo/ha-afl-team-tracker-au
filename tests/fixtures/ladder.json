@@ -1,0 +1,44 @@
+{
+ "meta": {
+  "code": 200
+ },
+ "ladders": [
+  {
+   "conference": "",
+   "entries": [
+    {
+     "position": 1,
+     "team": {
+      "id": 14,
+      "providerId": "CD_T14",
+      "name": "Fremantle",
+      "abbreviation": "FRE",
+      "nickname": "Dockers",
+      "club": {
+       "id": 14,
+       "name": "Fremantle"
+      },
+      "teamType": "MEN"
+     },
+     "played": 23
+    },
+    {
+     "position": 2,
+     "team": {
+      "id": 13,
+      "providerId": "CD_T13",
+      "name": "Sydney Swans",
+      "abbreviation": "SYD",
+      "nickname": "Swans",
+      "club": {
+       "id": 13,
+       "name": "Sydney Swans"
+      },
+      "teamType": "MEN"
+     },
+     "played": 23
+    }
+   ]
+  }
+ ]
+}
