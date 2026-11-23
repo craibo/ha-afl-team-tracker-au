@@ -6,7 +6,7 @@ Releases are cut by pushing a `v*` tag; `.github/workflows/release.yml` checks t
 
 1. Make sure `main` is green (CI: tests, card, hacs, hassfest).
 2. Check `custom_components/afl_team_tracker/manifest.json` `version` matches the tag you are about to create; bump it first if not, and bump the version in `USER_AGENT` in `custom_components/afl_team_tracker/const.py` together with it (a test fails if they differ).
-3. Tag and push: `git tag v0.1.0 && git push origin v0.1.0`.
+3. Tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
 4. Confirm the Release workflow succeeded and the release has `afl_team_tracker.zip`.
 5. In Home Assistant, HACS > Custom repositories > add `https://github.com/craibo/ha-afl-team-tracker-au` as type Integration, download it, restart HA, then add **AFL Team Tracker**.
 

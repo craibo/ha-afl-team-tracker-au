@@ -2,7 +2,7 @@
 
 DOMAIN = "afl_team_tracker"
 USER_AGENT = (
-    "ha-afl-team-tracker-au/0.1.0 "
+    "ha-afl-team-tracker-au/0.2.0 "
     "(+https://github.com/craibo/ha-afl-team-tracker-au)"
 )
 PERIODS = (
